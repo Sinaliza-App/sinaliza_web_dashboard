@@ -1,6 +1,5 @@
-@import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
 
 body {
   background-color: #0f172a;
@@ -38,6 +37,17 @@ body {
     transform: translateZ(0);
     backface-visibility: hidden;
     perspective: 1000px;
+    will-change: transform;
+}
+
+.login-page-wrapper .form-container,
+.login-page-wrapper .toggle-container,
+.login-page-wrapper .toggle,
+.login-page-wrapper .toggle-panel {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+    will-change: transform;
 }
 
 .login-page-wrapper .container h1 {
