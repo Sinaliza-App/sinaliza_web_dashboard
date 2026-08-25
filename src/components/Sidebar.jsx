@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Settings, LogOut, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, Podium, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 
@@ -7,7 +7,7 @@ const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useContext(AuthContext);
-  
+
   // Inicializa o estado lendo do localStorage, padrão é false (aberta)
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('@Sinaliza:sidebarCollapsed');
@@ -27,7 +27,7 @@ const Sidebar = () => {
 
   const menuItems = [
     { name: 'Visão Geral', path: '/dashboard', icon: <LayoutDashboard size={20} className="shrink-0" /> },
-    { name: 'Ranking', path: '/dashboard/ranking', icon: <Activity size={20} className="shrink-0" /> },
+    { name: 'Ranking', path: '/dashboard/ranking', icon: <Podium size={20} className="shrink-0" /> },
     { name: 'Usuários', path: '/dashboard/users', icon: <Users size={20} className="shrink-0" /> },
     { name: 'Configurações', path: '/dashboard/settings', icon: <Settings size={20} className="shrink-0" /> },
   ];
@@ -35,7 +35,7 @@ const Sidebar = () => {
   return (
     <aside className={`${isCollapsed ? 'w-20' : 'w-64'} relative bg-slate-800 border-r border-slate-700 h-screen flex flex-col transition-all duration-300 z-50 shrink-0`}>
       {/* Toggle Button */}
-      <button 
+      <button
         onClick={toggleSidebar}
         className="absolute -right-3 top-8 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white hover:bg-emerald-600 transition-colors shadow-md z-50"
       >

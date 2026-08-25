@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from 'react';
 import api from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
-import { Camera, Save, AlertCircle } from 'lucide-react';
+import { Camera, Save, AlertCircle, User } from 'lucide-react';
 
 const Settings = () => {
   const { user, signOut } = useContext(AuthContext);
@@ -109,7 +109,7 @@ const Settings = () => {
         <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-lg p-8">
           <h2 className="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
             <span className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-              <Camera size={18} />
+              <User size={18} />
             </span>
             Informações Pessoais
           </h2>
