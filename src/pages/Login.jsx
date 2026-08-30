@@ -24,7 +24,7 @@ function Login() {
   }, []);
 
   const handleRegisterClick = () => {
-    setIsActive(true);
+    // setIsActive(true); // Removido
     setForgotPassword(false);
     setError('');
     setMsg('');
@@ -138,52 +138,7 @@ function Login() {
 
       <div className={`container ${isActive ? 'active' : ''}`} id="container">
         
-        {/* Formulário de Cadastro */}
-        <div className="form-container sign-up">
-          <form onSubmit={handleRegisterSubmit}>
-            <h1 className="font-bold text-2xl">Criar Conta</h1>
-            
-            <div className="social-icons flex justify-center">
-              <a href="#" onClick={(e) => { e.preventDefault(); handleOAuthLogin('google'); }}>
-                <span className="font-bold">G</span>
-              </a>
-              <a href="#" onClick={(e) => { e.preventDefault(); handleOAuthLogin('github'); }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"/></svg>
-              </a>
-            </div>
-            <span className="text-sm">ou use seu e-mail para registro</span>
-
-            <AnimatePresence>
-              {error && isActive && (
-                <motion.div initial={{ opacity: 0, height: 0, marginBottom: 0 }} animate={{ opacity: 1, height: 'auto', marginBottom: 16 }} exit={{ opacity: 0, height: 0, marginBottom: 0 }} className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-2.5 rounded-lg w-full mt-3 text-sm overflow-hidden">
-                  <AlertCircle size={18} className="shrink-0" />
-                  <span className="text-left leading-tight">{error}</span>
-                </motion.div>
-              )}
-              {msg && isActive && (
-                <motion.div initial={{ opacity: 0, height: 0, marginBottom: 0 }} animate={{ opacity: 1, height: 'auto', marginBottom: 16 }} exit={{ opacity: 0, height: 0, marginBottom: 0 }} className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-2.5 rounded-lg w-full mt-3 text-sm overflow-hidden">
-                  <CheckCircle2 size={18} className="shrink-0" />
-                  <span className="text-left leading-tight">{msg}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            <input type="text" placeholder="Nome" value={name} onChange={(e) => setName(e.target.value)} required className={error && isActive ? '!mt-0' : 'mt-3'} />
-            <input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <div className="w-full relative m-0 p-0 flex">
-              <input type={showPassword ? "text" : "password"} placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full !m-0" />
-              <button 
-                type="button" 
-                onClick={() => setShowPassword(!showPassword)} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 !p-0 !m-0 !bg-transparent !shadow-none !border-none !text-slate-400 hover:!text-emerald-500 !w-auto !transform-none"
-                tabIndex="-1"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-            <button type="submit" disabled={loading}>{loading ? 'Aguarde...' : 'Cadastrar'}</button>
-          </form>
-        </div>
+        {/* Formulário de Cadastro Removido para Segurança */}
 
         {/* Formulário de Login / Recuperação */}
         <div className="form-container sign-in flex flex-col justify-center">
@@ -276,22 +231,7 @@ function Login() {
         </div>
 
         {/* Toggle Painel Lateral */}
-        <div className="toggle-container">
-          <div className="toggle">
-            <div className="toggle-panel toggle-left">
-              <img src="/letra_s.png" alt="Logo" className="w-24 h-24 mb-4 object-contain brightness-0 invert opacity-80" />
-              <h1>Bem-vindo de volta!</h1>
-              <p>Acesse o painel do Sinaliza com seus dados para continuar administrando.</p>
-              <button type="button" className="ghost-btn" id="login" onClick={handleLoginClick}>Entrar</button>
-            </div>
-            <div className="toggle-panel toggle-right">
-              <img src="/letra_s.png" alt="Logo" className="w-24 h-24 mb-4 object-contain brightness-0 invert opacity-80" />
-              <h1 className="font-bold text-3xl">Sinaliza Web</h1>
-              <p>Cadastre-se com seus dados e gerencie a plataforma Sinaliza hoje mesmo.</p>
-              <button type="button" className="ghost-btn" id="register" onClick={handleRegisterClick}>Cadastrar</button>
-            </div>
-          </div>
-        </div>
+        {/* Painel Toggle Removido para simplificar (Acesso Restrito) */}
       </div>
     </motion.div>
   )
