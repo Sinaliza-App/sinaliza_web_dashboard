@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Ranking from './pages/Ranking';
 import UsersList from './pages/UsersList';
 import Settings from './pages/Settings';
+import AuthCallback from './pages/AuthCallback';
 import './App.css'; 
 
 function PrivateRoute({ children }) {
@@ -28,6 +29,7 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location}>
         <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         
         <Route path="/dashboard" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
           <Route index element={<Dashboard />} />
