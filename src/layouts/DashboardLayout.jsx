@@ -54,7 +54,11 @@ const DashboardLayout = () => {
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-slate-200">{user?.name || 'Administrador'}</p>
-              <p className="text-xs text-emerald-400">{user?.email || 'admin@sinaliza.com'}</p>
+              <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                <span className="text-xs font-bold bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">{user?.total_score || 0} XP</span>
+                <span className="text-xs text-slate-500">•</span>
+                <p className="text-xs text-slate-400">{user?.email || 'admin@sinaliza.com'}</p>
+              </div>
             </div>
             <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-emerald-500 flex items-center justify-center overflow-hidden shrink-0">
               {user?.profile_picture ? (
