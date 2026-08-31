@@ -6,7 +6,9 @@ import Login from './pages/Login';
 import DashboardLayout from './layouts/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import Ranking from './pages/Ranking';
-import UsersList from './pages/UsersList';
+import CommunityManager from './pages/CommunityManager';
+import ContentManager from './pages/ContentManager';
+import NotificationCenter from './pages/NotificationCenter';
 import Settings from './pages/Settings';
 import AuthCallback from './pages/AuthCallback';
 import './App.css'; 
@@ -26,19 +28,19 @@ function PublicRoute({ children }) {
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location}>
-        <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        
-        <Route path="/dashboard" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="ranking" element={<Ranking />} />
-          <Route path="users" element={<UsersList />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </AnimatePresence>
+    <Routes location={location}>
+      <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      
+      <Route path="/dashboard" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
+        <Route index element={<Dashboard />} />
+        <Route path="ranking" element={<Ranking />} />
+        <Route path="content" element={<ContentManager />} />
+        <Route path="users" element={<CommunityManager />} />
+        <Route path="notifications" element={<NotificationCenter />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+    </Routes>
   );
 }
 

@@ -16,20 +16,32 @@ export const AuthProvider = ({ children }) => {
         api.defaults.headers.Authorization = `Bearer ${token}`;
         
         try {
-          const response = await api.get('/users/me');
+          // Busca os dados diretamente do Supabase no Frontend
+          const { data: userData, error: fetchError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('auth_id', session.user.id)
+            .single();
+
+          if (fetchError) {
+            console.error("Fetch Error details:", fetchError);
+            throw fetchError;
+          }
           
           // Bloqueia acesso web se não for administrador
-          if (!response.data.is_admin) {
+          if (!userData.is_admin) {
             await supabase.auth.signOut();
             setUser(null);
-            alert("Acesso Negado: Apenas administradores podem acessar este painel.");
+            alert("Acesso Negado: Este painel é exclusivo para Administradores/Professores do SINALIZA.");
             return;
           }
 
-          setUser(response.data);
+          setUser(userData);
         } catch (error) {
-          console.error("Erro ao buscar dados do usuário", error);
+          console.error("Erro ao buscar dados do usuário na tabela public.users:", error);
+          await supabase.auth.signOut();
           setUser(null);
+          alert("Conta não encontrada! Se você está tentando acessar o painel, certifique-se de que sua conta foi criada primeiro através do Aplicativo Sinaliza e que você possui permissão de Administrador.");
         }
       } else {
         api.defaults.headers.Authorization = null;
@@ -53,7 +65,26 @@ export const AuthProvider = ({ children }) => {
       throw new Error(error.message);
     }
     
-    // O useEffect(onAuthStateChange) cuidará de buscar os dados em /users/me
+    api.defaults.headers.Authorization = `Bearer ${data.session.access_token}`;
+    try {
+      const { data: userData, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth_id', data.user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (!userData.is_admin) {
+        await supabase.auth.signOut();
+        throw new Error("Acesso Negado: Este painel é exclusivo para Administradores/Professores do SINALIZA.");
+      }
+      setUser(userData);
+    } catch (err) {
+      await supabase.auth.signOut();
+      throw new Error(err.message || "Conta não encontrada! Se você está tentando acessar o painel, certifique-se de que sua conta foi criada primeiro através do Aplicativo Sinaliza e que você possui permissão de Administrador.");
+    }
+    
     return data;
   }
 

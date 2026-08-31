@@ -1,12 +1,13 @@
 import { useState, useContext, useEffect } from 'react';
-import api from '../services/api';
+import { supabase } from '../services/supabase';
 import { AuthContext } from '../contexts/AuthContext';
-import { Camera, Save, AlertCircle, User } from 'lucide-react';
+import { Camera, Save, AlertCircle, User, Eye, EyeOff } from 'lucide-react';
 
 const Settings = () => {
   const { user, signOut } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -16,8 +17,7 @@ const Settings = () => {
     if (!path) return null;
     if (path.startsWith('http') || path.startsWith('data:')) return path;
     if (!path.includes('.')) return `data:image/jpeg;base64,${path}`;
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    return null;
   };
 
   useEffect(() => {
@@ -33,9 +33,7 @@ const Settings = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview(reader.result); // Exibe o preview (Base64 completo com data:image)
-        
-        // Removemos a parte 'data:image/jpeg;base64,' antes de enviar para manter padrão do flutter
+        setPreview(reader.result);
         const base64Data = reader.result.split(',')[1];
         setProfilePicture(base64Data);
       };
@@ -49,29 +47,76 @@ const Settings = () => {
     setMessage({ text: '', type: '' });
 
     try {
-      const payload = {};
-      if (name && name !== user.name) payload.name = name;
-      if (password) payload.password = password;
-      if (profilePicture) payload.profile_picture = profilePicture;
+      // Password validation
+      if (password) {
+        if (password.length < 8) {
+          setMessage({ text: 'A senha deve ter no mínimo 8 caracteres.', type: 'error' });
+          setLoading(false);
+          return;
+        }
+        if (!/[A-Z]/.test(password)) {
+          setMessage({ text: 'A senha deve conter pelo menos uma letra maiúscula.', type: 'error' });
+          setLoading(false);
+          return;
+        }
+        if (!/[a-z]/.test(password)) {
+          setMessage({ text: 'A senha deve conter pelo menos uma letra minúscula.', type: 'error' });
+          setLoading(false);
+          return;
+        }
+        if (!/[0-9]/.test(password)) {
+          setMessage({ text: 'A senha deve conter pelo menos um número.', type: 'error' });
+          setLoading(false);
+          return;
+        }
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+          setMessage({ text: 'A senha deve conter pelo menos um símbolo especial.', type: 'error' });
+          setLoading(false);
+          return;
+        }
+      }
 
-      if (Object.keys(payload).length === 0) {
+      // Build profile update payload
+      const profilePayload = {};
+      if (name && name !== user.name) profilePayload.name = name;
+      if (profilePicture) profilePayload.profile_picture = profilePicture;
+      
+      const hasProfileChanges = Object.keys(profilePayload).length > 0;
+      const hasPasswordChange = password.length > 0;
+
+      if (!hasProfileChanges && !hasPasswordChange) {
         setMessage({ text: 'Nenhuma alteração foi feita.', type: 'info' });
         setLoading(false);
         return;
       }
 
-      await api.put('/users/me', payload);
-      setMessage({ text: 'Perfil atualizado com sucesso! Faça login novamente para ver todas as alterações se necessário.', type: 'success' });
-      setPassword(''); // Limpa a senha
-      
-      // Atualiza a página para pegar dados frescos do AuthContext
+      // Update profile data in public.users via Supabase
+      if (hasProfileChanges) {
+        const { error } = await supabase
+          .from('users')
+          .update(profilePayload)
+          .eq('auth_id', user.auth_id);
+        
+        if (error) throw error;
+      }
+
+      // Update password via Supabase Auth
+      if (hasPasswordChange) {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+      }
+
+      setMessage({ text: 'Perfil atualizado com sucesso!', type: 'success' });
+      setPassword('');
+
+      // Reload to refresh user data from AuthContext
       setTimeout(() => {
          window.location.reload();
       }, 1500);
 
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
-      setMessage({ text: error.response?.data?.message || 'Erro ao atualizar perfil.', type: 'error' });
+      setMessage({ text: error.message || 'Erro ao atualizar perfil.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -80,7 +125,7 @@ const Settings = () => {
   const handleDeleteAccount = async () => {
     if (window.confirm('CUIDADO! Você está prestes a excluir SUA CONTA DE ADMINISTRADOR permanentemente. Todo o seu progresso e acesso serão perdidos. Tem certeza absoluta?')) {
       try {
-        await api.delete('/users/me');
+        await supabase.rpc('delete_user_account', { target_user_id: user.auth_id });
         alert('Conta excluída com sucesso.');
         signOut();
       } catch (error) {
@@ -91,7 +136,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="p-8 flex-1 max-w-4xl mx-auto w-full space-y-8">
+    <div className="p-8 flex-1 max-w-4xl mx-auto w-full space-y-8 bg-slate-950 min-h-screen text-slate-100 font-sans">
       {message.text && (
         <div className={`p-4 rounded-xl flex items-center gap-3 shadow-sm ${
           message.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
@@ -106,7 +151,7 @@ const Settings = () => {
       <form onSubmit={handleSubmit} className="space-y-8">
         
         {/* Informações Pessoais Card */}
-        <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-lg p-8">
+        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-3xl shadow-lg p-8 relative overflow-hidden">
           <h2 className="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
             <span className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
               <User size={18} />
@@ -143,9 +188,35 @@ const Settings = () => {
                   type="text" 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-900/50 border border-slate-600 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-slate-600"
+                  className="w-full bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-slate-500"
                   placeholder="Seu nome"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1.5 flex justify-between items-center">
+                  <span>Nova Senha</span>
+                  <span className="text-xs text-slate-500 font-normal">Opcional</span>
+                </label>
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-xl px-4 py-3 pr-12 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-slate-500"
+                    placeholder="Deixe em branco se não quiser alterar"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-emerald-500 transition-colors"
+                    tabIndex="-1"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  Mín. 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 símbolo.
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-1.5">E-mail (Apenas Leitura)</label>
@@ -160,28 +231,6 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Segurança Card */}
-        <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-lg p-8">
-          <h2 className="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            </span>
-            Segurança
-          </h2>
-          
-          <div className="max-w-md">
-            <label className="block text-sm font-medium text-slate-400 mb-1.5">Nova Senha</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900/50 border border-slate-600 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
-              placeholder="••••••••"
-            />
-            <p className="text-xs text-slate-500 mt-2">Deixe em branco se não quiser alterar sua senha atual.</p>
-          </div>
-        </div>
-
         <div className="flex justify-end">
           <button 
             type="submit" 
@@ -189,22 +238,22 @@ const Settings = () => {
             className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 hover:-translate-y-0.5"
           >
             <Save size={20} />
-            {loading ? 'Salvando...' : 'Salvar Todas Alterações'}
+            {loading ? 'Salvando...' : 'Salvar Alterações'}
           </button>
         </div>
       </form>
 
       {/* Zona de Perigo */}
-      <div className="bg-rose-500/5 border border-rose-500/20 rounded-2xl p-8 mt-12 relative overflow-hidden">
+      <div className="bg-slate-900/60 backdrop-blur-xl border border-rose-500/20 rounded-2xl p-8 mt-12 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-bl-full -z-10"></div>
         <h3 className="text-lg font-bold text-rose-400 mb-2 flex items-center gap-2">
           <AlertCircle size={20} />
           Zona de Perigo
         </h3>
-        <p className="text-slate-400 mb-6 text-sm max-w-2xl">A exclusão da conta é permanente e não pode ser desfeita. Todo o seu histórico e acesso administrativo serão apagados para sempre.</p>
+        <p className="text-slate-400 mb-6 text-sm relative z-10 max-w-2xl">A exclusão da conta é permanente e não pode ser desfeita. Todo o seu histórico e acesso administrativo serão apagados para sempre.</p>
         <button 
           onClick={handleDeleteAccount}
-          className="bg-rose-500/10 text-rose-400 hover:bg-rose-600 hover:text-white px-6 py-3 rounded-xl font-medium transition-all border border-rose-500/20 hover:border-transparent hover:shadow-lg hover:shadow-rose-500/20"
+          className="relative z-10 px-6 py-3 bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white rounded-xl font-semibold transition-all duration-300 flex items-center justify-center sm:justify-start gap-2 shadow-[0_0_15px_rgba(244,63,94,0.1)] hover:shadow-[0_0_20px_rgba(244,63,94,0.3)]"
         >
           Excluir Minha Conta Permanentemente
         </button>

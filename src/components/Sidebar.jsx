@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Settings, LogOut, Podium, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, Podium, ChevronLeft, ChevronRight, Database, BellRing } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 
@@ -27,8 +27,10 @@ const Sidebar = () => {
 
   const menuItems = [
     { name: 'Visão Geral', path: '/dashboard', icon: <LayoutDashboard size={20} className="shrink-0" /> },
+    { name: 'Conteúdo (CRUD)', path: '/dashboard/content', icon: <Database size={20} className="shrink-0" /> },
+    { name: 'Comunidade', path: '/dashboard/users', icon: <Users size={20} className="shrink-0" /> },
+    { name: 'Notificações', path: '/dashboard/notifications', icon: <BellRing size={20} className="shrink-0" /> },
     { name: 'Ranking', path: '/dashboard/ranking', icon: <Podium size={20} className="shrink-0" /> },
-    { name: 'Usuários', path: '/dashboard/users', icon: <Users size={20} className="shrink-0" /> },
     { name: 'Configurações', path: '/dashboard/settings', icon: <Settings size={20} className="shrink-0" /> },
   ];
 

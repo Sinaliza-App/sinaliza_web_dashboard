@@ -37,7 +37,11 @@ function Login() {
       // Redirecionamento e checagem de Admin são feitos pelo AuthContext
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message || 'E-mail ou senha incorretos.');
+      let errorMessage = err.message || 'Erro desconhecido.';
+      if (errorMessage.toLowerCase().includes('invalid login credentials')) {
+        errorMessage = 'E-mail ou senha incorretos.';
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
