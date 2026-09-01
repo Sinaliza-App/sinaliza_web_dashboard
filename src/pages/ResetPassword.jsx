@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 
 export default function ResetPassword() {
