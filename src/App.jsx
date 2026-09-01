@@ -11,6 +11,7 @@ import ContentManager from './pages/ContentManager';
 import NotificationCenter from './pages/NotificationCenter';
 import Settings from './pages/Settings';
 import AuthCallback from './pages/AuthCallback';
+import ResetPassword from './pages/ResetPassword';
 import './App.css'; 
 
 function PrivateRoute({ children }) {
@@ -31,6 +32,7 @@ function AnimatedRoutes() {
     <Routes location={location}>
       <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       
       <Route path="/dashboard" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
