@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Library, Image as ImageIcon, Plus, Edit2, Trash2, X, Check, Search, Save, EyeOff, AlertTriangle } from 'lucide-react';
+import { BookOpen, Library, Plus, Edit2, Trash2, X, Check, Save, EyeOff, AlertTriangle } from 'lucide-react';
 
 export default function ContentManager() {
   const [activeTab, setActiveTab] = useState('lessons'); // UI state
@@ -15,10 +15,6 @@ export default function ContentManager() {
   
   // Form states
   const [formData, setFormData] = useState({});
-
-  useEffect(() => {
-    fetchData(activeTab);
-  }, [activeTab]);
 
   const fetchData = async (tabToFetch) => {
     setLoading(true);
@@ -40,6 +36,10 @@ export default function ContentManager() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData(activeTab);
+  }, [activeTab]);
 
   const getTableName = () => {
     if (activeTab === 'modules') return 'modules';
@@ -77,6 +77,7 @@ export default function ContentManager() {
       const table = getTableName();
       
       // Remove read-only fields that Supabase won't accept on insert/update
+      // eslint-disable-next-line no-unused-vars
       const { id, created_at, ...cleanData } = formData;
       
       if (editingItem) {

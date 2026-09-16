@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { Trophy, Medal, Shield, Diamond, TrendingUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Ranking = () => {
@@ -53,7 +53,6 @@ const Ranking = () => {
   }
 
   const topThree = ranking.slice(0, 3);
-  const rest = ranking.slice(3);
 
   return (
     <div className="p-8 flex-1 bg-slate-950 font-sans text-slate-100 min-h-screen">

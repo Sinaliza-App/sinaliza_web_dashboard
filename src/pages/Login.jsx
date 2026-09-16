@@ -72,6 +72,7 @@ function Login() {
     try {
       await signInWithOAuth(provider);
     } catch (err) {
+      console.error(err);
       setError(`Erro ao logar com ${provider}`);
     }
   };
