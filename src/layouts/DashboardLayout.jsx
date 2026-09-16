@@ -27,6 +27,7 @@ const DashboardLayout = () => {
     if (location.pathname === '/dashboard/users') return { title: 'Comunidade', sub: 'Gerenciamento de alunos e reports' };
     if (location.pathname === '/dashboard/content') return { title: 'Conteúdo', sub: 'Gerencie módulos, lições e dicionário' };
     if (location.pathname === '/dashboard/notifications') return { title: 'Notificações', sub: 'Envie avisos para os alunos' };
+    if (location.pathname === '/dashboard/tester') return { title: 'Laboratório de IA', sub: 'Teste o modelo ONNX diretamente na nuvem' };
     if (location.pathname === '/dashboard/settings') return { title: 'Configurações', sub: 'Gerencie seu perfil' };
     return { title: '', sub: '' };
   };

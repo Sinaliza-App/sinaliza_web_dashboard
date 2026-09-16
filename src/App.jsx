@@ -12,6 +12,7 @@ import NotificationCenter from './pages/NotificationCenter';
 import Settings from './pages/Settings';
 import AuthCallback from './pages/AuthCallback';
 import ResetPassword from './pages/ResetPassword';
+import ModelTester from './pages/ModelTester';
 import './App.css'; 
 
 function PrivateRoute({ children }) {
@@ -39,6 +40,7 @@ function AnimatedRoutes() {
         <Route path="ranking" element={<Ranking />} />
         <Route path="content" element={<ContentManager />} />
         <Route path="users" element={<CommunityManager />} />
+        <Route path="tester" element={<ModelTester />} />
         <Route path="notifications" element={<NotificationCenter />} />
         <Route path="settings" element={<Settings />} />
       </Route>
