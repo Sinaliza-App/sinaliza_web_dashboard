@@ -8,11 +8,11 @@ export default function ContentManager() {
   const [displayedTab, setDisplayedTab] = useState('lessons'); // Data state
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // States for modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  
+
   // Form states
   const [formData, setFormData] = useState({});
 
@@ -21,12 +21,12 @@ export default function ContentManager() {
     try {
       let table = 'lessons';
       if (tabToFetch === 'modules') table = 'modules';
-      
+
       const { data, error } = await supabase
         .from(table)
         .select('*')
         .order('id', { ascending: false });
-        
+
       if (error) throw error;
       setItems(data || []);
       setDisplayedTab(tabToFetch);
@@ -48,7 +48,7 @@ export default function ContentManager() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Tem certeza que deseja excluir?')) return;
-    
+
     try {
       const { error } = await supabase.from(getTableName()).delete().eq('id', id);
       if (error) throw error;
@@ -75,11 +75,11 @@ export default function ContentManager() {
     e.preventDefault();
     try {
       const table = getTableName();
-      
+
       // Remove read-only fields that Supabase won't accept on insert/update
       // eslint-disable-next-line no-unused-vars
       const { id, created_at, ...cleanData } = formData;
-      
+
       if (editingItem) {
         const { error } = await supabase.from(table).update(cleanData).eq('id', editingItem.id);
         if (error) throw error;
@@ -87,7 +87,7 @@ export default function ContentManager() {
         const { error } = await supabase.from(table).insert([cleanData]);
         if (error) throw error;
       }
-      
+
       setIsModalOpen(false);
       fetchData();
     } catch (error) {
@@ -109,8 +109,8 @@ export default function ContentManager() {
           </h1>
           <p className="text-slate-400 mt-2">Adicione e organize Módulos, Lições e o Dicionário.</p>
           <div className="mt-4 inline-flex items-center space-x-2 bg-amber-500/10 border border-amber-500/30 text-amber-500 px-4 py-2 rounded-xl text-sm font-medium">
-             <AlertTriangle className="w-4 h-4" />
-             <span>Itens marcados como <strong>RASCUNHO</strong> não aparecem no App para os alunos, apenas para administradores.</span>
+            <AlertTriangle className="w-4 h-4" />
+            <span>Itens marcados como <strong>RASCUNHO</strong> não aparecem no App para os alunos, apenas para administradores.</span>
           </div>
         </div>
         <button
@@ -131,11 +131,10 @@ export default function ContentManager() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl font-bold transition-all duration-300 ${
-              activeTab === tab.id
+            className={`flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl font-bold transition-all duration-300 ${activeTab === tab.id
                 ? 'bg-neon-blue text-black shadow-[0_0_20px_rgba(0,240,255,0.3)]'
                 : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-            }`}
+              }`}
           >
             <tab.icon className="w-5 h-5" />
             <span>{tab.label}</span>
@@ -229,7 +228,7 @@ export default function ContentManager() {
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setIsModalOpen(false)}
             />
-            
+
             <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -258,7 +257,7 @@ export default function ContentManager() {
                     placeholder="Ex: Alfabeto em Libras"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-slate-400 mb-1">Descrição</label>
                   <textarea
@@ -269,7 +268,7 @@ export default function ContentManager() {
                     placeholder="Descrição do conteúdo..."
                   />
                 </div>
-                
+
                 {(activeTab === 'lessons' || activeTab === 'dictionary') && (
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-1">URL da Mídia (GIF/Imagem/Vídeo)</label>
@@ -282,7 +281,7 @@ export default function ContentManager() {
                     />
                   </div>
                 )}
-                
+
                 {activeTab === 'lessons' && (
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-1">ID do Módulo</label>
@@ -294,7 +293,7 @@ export default function ContentManager() {
                     />
                   </div>
                 )}
-                
+
                 {activeTab === 'dictionary' && (
                   <div>
                     <label className="block text-sm font-medium text-slate-400 mb-1">Gesture ID (Modelo AI)</label>
@@ -309,11 +308,11 @@ export default function ContentManager() {
 
                 {/* Draft Toggle */}
                 <div className="flex items-center space-x-3 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 mt-4">
-                  <div 
+                  <div
                     className={`w-12 h-6 rounded-full cursor-pointer transition-colors relative ${formData.is_draft ? 'bg-amber-500' : 'bg-slate-600'}`}
                     onClick={() => setFormData({ ...formData, is_draft: !formData.is_draft })}
                   >
-                    <motion.div 
+                    <motion.div
                       layout
                       className="absolute top-1 left-1 bg-white w-4 h-4 rounded-full"
                       animate={{ x: formData.is_draft ? 24 : 0 }}

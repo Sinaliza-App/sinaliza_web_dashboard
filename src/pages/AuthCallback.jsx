@@ -1,13 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../services/supabase';
 import { AuthContext } from '../contexts/AuthContext';
-import { useContext } from 'react';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
 
-  const { signed, loading, user } = useContext(AuthContext);
+  const { signed, loading } = useContext(AuthContext);
 
   useEffect(() => {
     // Só redireciona quando o AuthContext terminar de carregar e confirmar o admin

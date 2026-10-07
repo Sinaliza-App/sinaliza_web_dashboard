@@ -27,7 +27,6 @@ const UsersList = () => {
 
   useEffect(() => {
     document.title = 'Sinaliza Web | Usuários';
-    // eslint-disable-next-line
     loadUsers();
   }, []);
 

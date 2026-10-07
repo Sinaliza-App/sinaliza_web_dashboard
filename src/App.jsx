@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthProvider, AuthContext } from './contexts/AuthContext';
-import { AnimatePresence } from 'framer-motion';
 import Login from './pages/Login';
 import DashboardLayout from './layouts/DashboardLayout';
 import Dashboard from './pages/Dashboard';

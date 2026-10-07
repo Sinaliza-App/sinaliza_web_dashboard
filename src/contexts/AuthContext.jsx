@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import { supabase } from '../services/supabase';
@@ -82,7 +83,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
     } catch (err) {
       await supabase.auth.signOut();
-      throw new Error(err.message || "Conta não encontrada! Se você está tentando acessar o painel, certifique-se de que sua conta foi criada primeiro através do Aplicativo Sinaliza e que você possui permissão de Administrador.");
+      throw new Error(err.message || "Conta não encontrada! Se você está tentando acessar o painel, certifique-se de que sua conta foi criada primeiro através do Aplicativo Sinaliza e que você possui permissão de Administrador.", { cause: err });
     }
     
     return data;

@@ -23,7 +23,6 @@ const Settings = () => {
   useEffect(() => {
     document.title = 'Sinaliza Web | Configurações';
     if (user) {
-      // eslint-disable-next-line
       setName(user.name || '');
        
       setPreview(getProfilePicture(user.profile_picture));
