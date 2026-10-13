@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
 import { supabase } from '../services/supabase';
 import { AuthContext } from '../contexts/AuthContext';
-import { Trash2, Shield, AlertTriangle, Users, GraduationCap, Lock } from 'lucide-react';
+import { Trash2, Shield, AlertTriangle, Users, GraduationCap, Lock, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function CommunityManager() {
@@ -64,29 +64,24 @@ export default function CommunityManager() {
     }
   };
 
-  const handleToggleRole = async (userId, userName, currentRole, currentAdmin) => {
+  const handleRoleChange = async (userId, userName, newRole) => {
     if (!isSuperAdmin) {
       alert('Ação restrita: Somente o Administrador do Sistema pode alterar papéis e permissões.');
       return;
     }
 
-    // Alterna entre student -> teacher -> admin -> student
-    let nextRole = 'teacher';
-    if (currentRole === 'teacher') nextRole = 'admin';
-    else if (currentRole === 'admin') nextRole = 'student';
+    const willBeAdmin = (newRole === 'admin');
 
-    const willBeAdmin = (nextRole === 'admin');
-
-    if (window.confirm(`Alterar papel de "${userName}" para ${nextRole.toUpperCase()}?`)) {
+    if (window.confirm(`Alterar papel de "${userName}" para ${newRole.toUpperCase()}?`)) {
       try {
         const { error } = await supabase
           .from('users')
-          .update({ role: nextRole, is_admin: willBeAdmin })
+          .update({ role: newRole, is_admin: willBeAdmin })
           .eq('id', userId);
 
         if (error) throw error;
 
-        setUsers(users.map(u => u.id === userId ? { ...u, role: nextRole, is_admin: willBeAdmin } : u));
+        setUsers(users.map(u => u.id === userId ? { ...u, role: newRole, is_admin: willBeAdmin } : u));
       } catch (error) {
         console.error('Erro ao alterar permissão:', error);
         alert('Erro ao alterar permissões no Supabase.');
@@ -189,20 +184,27 @@ export default function CommunityManager() {
                       <td className="p-4 text-slate-400">{user.email}</td>
                       <td className="p-4 text-center">
                         {isSuperAdmin ? (
-                          <button
-                            onClick={() => handleToggleRole(user.id, user.name, role, user.is_admin)}
-                            className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                              isUserAdmin
-                                ? 'bg-purple-500/20 text-purple-400 border-purple-500/40 hover:bg-purple-500/30'
-                                : isUserTeacher
-                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
-                                : 'bg-slate-700/50 text-slate-400 border-slate-600 hover:bg-emerald-500/20 hover:text-emerald-400'
-                            }`}
-                            title="Clique para alternar papel (Aluno -> Professor -> Admin)"
-                          >
-                            {isUserAdmin ? <Shield className="w-3.5 h-3.5" /> : isUserTeacher ? <GraduationCap className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
-                            <span>{isUserAdmin ? "ADMIN" : isUserTeacher ? "PROFESSOR" : "ALUNO"}</span>
-                          </button>
+                          <div className="inline-block relative">
+                            <select
+                              value={role}
+                              onChange={(e) => handleRoleChange(user.id, user.name, e.target.value)}
+                              className={`appearance-none pl-3 pr-8 py-1.5 rounded-full text-xs font-bold border outline-none cursor-pointer transition-all ${
+                                isUserAdmin
+                                  ? 'bg-purple-950/60 text-purple-300 border-purple-500/50 hover:bg-purple-900/60 focus:ring-2 focus:ring-purple-500/50'
+                                  : isUserTeacher
+                                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900/60 focus:ring-2 focus:ring-emerald-500/50'
+                                  : 'bg-slate-900/80 text-slate-300 border-slate-600 hover:bg-slate-800/80 focus:ring-2 focus:ring-slate-500/50'
+                              }`}
+                              title="Selecione o papel do usuário"
+                            >
+                              <option value="student" className="bg-slate-900 text-slate-300">ALUNO</option>
+                              <option value="teacher" className="bg-slate-900 text-emerald-400">PROFESSOR</option>
+                              <option value="admin" className="bg-slate-900 text-purple-400">ADMIN</option>
+                            </select>
+                            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                              ▼
+                            </span>
+                          </div>
                         ) : (
                           <span
                             className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${

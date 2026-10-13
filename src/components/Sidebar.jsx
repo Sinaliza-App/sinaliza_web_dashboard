@@ -29,7 +29,7 @@ const Sidebar = () => {
     { name: 'Visão Geral', path: '/dashboard', icon: <LayoutDashboard size={20} className="shrink-0" /> },
     { name: 'Conteúdo (CRUD)', path: '/dashboard/content', icon: <Database size={20} className="shrink-0" /> },
     { name: 'Comunidade', path: '/dashboard/users', icon: <Users size={20} className="shrink-0" /> },
-    { name: 'Estúdio de Coleta', path: '/dashboard/coleta', icon: <Camera size={20} className="shrink-0 text-emerald-400" /> },
+    { name: 'Estúdio de Coleta', path: '/dashboard/coleta', icon: <Camera size={20} className="shrink-0" /> },
     { name: 'Notificações', path: '/dashboard/notifications', icon: <BellRing size={20} className="shrink-0" /> },
     { name: 'Ranking', path: '/dashboard/ranking', icon: <Podium size={20} className="shrink-0" /> },
     { name: 'Testador IA', path: '/dashboard/tester', icon: <Microscope size={20} className="shrink-0" /> },
