@@ -29,20 +29,28 @@ export const AuthProvider = ({ children }) => {
             throw fetchError;
           }
           
-          // Bloqueia acesso web se não for administrador
-          if (!userData.is_admin) {
+          const userRole = userData.role || (userData.is_admin ? 'admin' : 'student');
+          const isStaff = userRole === 'teacher' || userRole === 'admin' || userData.is_admin === true;
+
+          // Bloqueia acesso web apenas para alunos sem privilégios pedagógicos
+          if (!isStaff) {
             await supabase.auth.signOut();
             setUser(null);
-            alert("Acesso Negado: Este painel é exclusivo para Administradores/Professores do SINALIZA.");
+            alert("Acesso Negado: Este painel é exclusivo para Educadores e Administradores do SINALIZA.");
             return;
           }
 
-          setUser(userData);
+          setUser({
+            ...userData,
+            role: userRole,
+            isAdmin: userRole === 'admin',
+            isTeacher: userRole === 'teacher' || userRole === 'admin'
+          });
         } catch (error) {
           console.error("Erro ao buscar dados do usuário na tabela public.users:", error);
           await supabase.auth.signOut();
           setUser(null);
-          alert("Conta não encontrada! Se você está tentando acessar o painel, certifique-se de que sua conta foi criada primeiro através do Aplicativo Sinaliza e que você possui permissão de Administrador.");
+          alert("Conta não encontrada! Se você é um educador, cadastre-se com a sua Chave de Acesso Institucional.");
         }
       } else {
         api.defaults.headers.Authorization = null;
@@ -76,16 +84,47 @@ export const AuthProvider = ({ children }) => {
 
       if (fetchError) throw fetchError;
 
-      if (!userData.is_admin) {
+      const userRole = userData.role || (userData.is_admin ? 'admin' : 'student');
+      const isStaff = userRole === 'teacher' || userRole === 'admin' || userData.is_admin === true;
+
+      if (!isStaff) {
         await supabase.auth.signOut();
-        throw new Error("Acesso Negado: Este painel é exclusivo para Administradores/Professores do SINALIZA.");
+        throw new Error("Acesso Negado: Este painel é exclusivo para Educadores e Administradores do SINALIZA.");
       }
-      setUser(userData);
+
+      const enriched = {
+        ...userData,
+        role: userRole,
+        isAdmin: userRole === 'admin',
+        isTeacher: userRole === 'teacher' || userRole === 'admin'
+      };
+      setUser(enriched);
+      return data;
     } catch (err) {
       await supabase.auth.signOut();
-      throw new Error(err.message || "Conta não encontrada! Se você está tentando acessar o painel, certifique-se de que sua conta foi criada primeiro através do Aplicativo Sinaliza e que você possui permissão de Administrador.", { cause: err });
+      throw new Error(err.message || "Conta não encontrada! Certifique-se de que sua conta possui acesso de Educador.", { cause: err });
     }
-    
+  }
+
+  async function registerTeacher(name, email, password, code) {
+    const defaultCode = 'PROF-SINALIZA-2026';
+    if (!code || code.trim().toUpperCase() !== defaultCode) {
+      throw new Error('Código institucional de acesso docente incorreto.');
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          role: 'teacher',
+          institution_code: code.trim().toUpperCase()
+        }
+      }
+    });
+
+    if (error) throw error;
     return data;
   }
 
@@ -137,8 +176,12 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{ 
       signed: !!user, 
       user, 
+      role: user?.role || 'student',
+      isAdmin: user?.isAdmin || false,
+      isTeacher: user?.isTeacher || false,
       signIn, 
       signUp, 
+      registerTeacher,
       signOut, 
       signInWithOAuth,
       resetPassword,

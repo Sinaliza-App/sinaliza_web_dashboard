@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { supabase } from '../services/supabase';
-import { Trash2, Shield, AlertTriangle, CheckCircle, Users } from 'lucide-react';
+import { AuthContext } from '../contexts/AuthContext';
+import { Trash2, Shield, AlertTriangle, Users, GraduationCap, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function CommunityManager() {
+  const { user: currentUser, isAdmin: isSuperAdmin } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('users'); // 'users', 'reports'
   const [users, setUsers] = useState([]);
   const [reports, setReports] = useState([]);
@@ -44,6 +46,11 @@ export default function CommunityManager() {
   }, [fetchData]);
 
   const handleBanUser = async (authId, userId, userName) => {
+    if (!isSuperAdmin) {
+      alert('Ação bloqueada: Apenas o Administrador Geral possui permissão para banir contas.');
+      return;
+    }
+
     if (window.confirm(`Tem certeza que deseja BANIR o aluno "${userName}"? Esta ação não pode ser desfeita e ele perderá todo o progresso.`)) {
       try {
         const { error } = await supabase.rpc('delete_user_account', { target_user_id: authId });
@@ -52,25 +59,37 @@ export default function CommunityManager() {
         alert('Usuário banido e excluído com sucesso.');
       } catch (error) {
         console.error('Erro ao excluir usuário:', error);
-        alert('Erro ao excluir usuário. Verifique se você tem permissões.');
+        alert('Erro ao excluir usuário. Verifique se você tem permissões no banco.');
       }
     }
   };
 
-  const handleToggleAdmin = async (userId, userName, currentAdminState) => {
-    if (window.confirm(`Deseja ${currentAdminState ? 'remover' : 'conceder'} acesso de administrador para "${userName}"?`)) {
+  const handleToggleRole = async (userId, userName, currentRole, currentAdmin) => {
+    if (!isSuperAdmin) {
+      alert('Ação restrita: Somente o Administrador do Sistema pode alterar papéis e permissões.');
+      return;
+    }
+
+    // Alterna entre student -> teacher -> admin -> student
+    let nextRole = 'teacher';
+    if (currentRole === 'teacher') nextRole = 'admin';
+    else if (currentRole === 'admin') nextRole = 'student';
+
+    const willBeAdmin = (nextRole === 'admin');
+
+    if (window.confirm(`Alterar papel de "${userName}" para ${nextRole.toUpperCase()}?`)) {
       try {
         const { error } = await supabase
           .from('users')
-          .update({ is_admin: !currentAdminState })
+          .update({ role: nextRole, is_admin: willBeAdmin })
           .eq('id', userId);
 
         if (error) throw error;
 
-        setUsers(users.map(u => u.id === userId ? { ...u, is_admin: !currentAdminState } : u));
+        setUsers(users.map(u => u.id === userId ? { ...u, role: nextRole, is_admin: willBeAdmin } : u));
       } catch (error) {
         console.error('Erro ao alterar permissão:', error);
-        alert('Erro ao alterar permissões.');
+        alert('Erro ao alterar permissões no Supabase.');
       }
     }
   };
@@ -137,58 +156,95 @@ export default function CommunityManager() {
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead>
                 <tr className="bg-slate-900/50 text-slate-400 border-b border-slate-700">
-                  <th className="p-4 font-medium">Aluno</th>
+                  <th className="p-4 font-medium">Usuário</th>
                   <th className="p-4 font-medium">Email</th>
-                  <th className="p-4 font-medium text-center">Tag de Professor</th>
+                  <th className="p-4 font-medium text-center">Papel (Role)</th>
                   <th className="p-4 font-medium text-center">Ofensiva</th>
                   <th className="p-4 font-medium text-center">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-slate-600 flex items-center justify-center shrink-0">
-                          {user.profile_picture ? (
-                            <img src={getProfilePicture(user.profile_picture)} alt={user.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="font-bold text-slate-400">{user.name.charAt(0).toUpperCase()}</span>
-                          )}
+                {users.map((user) => {
+                  const role = user.role || (user.is_admin ? 'admin' : 'student');
+                  const isUserAdmin = role === 'admin' || user.is_admin;
+                  const isUserTeacher = role === 'teacher';
+
+                  return (
+                    <tr key={user.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-slate-700 overflow-hidden border border-slate-600 flex items-center justify-center shrink-0">
+                            {user.profile_picture ? (
+                              <img src={getProfilePicture(user.profile_picture)} alt={user.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="font-bold text-slate-400">{user.name.charAt(0).toUpperCase()}</span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-medium text-slate-200 block">{user.name}</span>
+                            <span className="text-[11px] text-slate-500">ID #{user.id}</span>
+                          </div>
                         </div>
-                        <span className="font-medium text-slate-200">{user.name}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-slate-400">{user.email}</td>
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleToggleAdmin(user.id, user.name, user.is_admin)}
-                        className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${user.is_admin
-                            ? 'bg-neon-green/20 text-neon-green border-neon-green/30 hover:bg-neon-red/20 hover:text-neon-red hover:border-neon-red/30'
-                            : 'bg-slate-700/50 text-slate-400 border-slate-600 hover:bg-neon-green/20 hover:text-neon-green hover:border-neon-green/30'
-                          }`}
-                        title={user.is_admin ? "Remover admin" : "Tornar admin"}
-                      >
-                        <Shield className="w-3 h-3" />
-                        <span>{user.is_admin ? "PROFESSOR" : "ALUNO"}</span>
-                      </button>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 font-medium text-sm">
-                        🔥 {user.streak_count || 0}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleBanUser(user.auth_id, user.id, user.name)}
-                        className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
-                        title="Banir Usuário"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-4 text-slate-400">{user.email}</td>
+                      <td className="p-4 text-center">
+                        {isSuperAdmin ? (
+                          <button
+                            onClick={() => handleToggleRole(user.id, user.name, role, user.is_admin)}
+                            className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                              isUserAdmin
+                                ? 'bg-purple-500/20 text-purple-400 border-purple-500/40 hover:bg-purple-500/30'
+                                : isUserTeacher
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
+                                : 'bg-slate-700/50 text-slate-400 border-slate-600 hover:bg-emerald-500/20 hover:text-emerald-400'
+                            }`}
+                            title="Clique para alternar papel (Aluno -> Professor -> Admin)"
+                          >
+                            {isUserAdmin ? <Shield className="w-3.5 h-3.5" /> : isUserTeacher ? <GraduationCap className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                            <span>{isUserAdmin ? "ADMIN" : isUserTeacher ? "PROFESSOR" : "ALUNO"}</span>
+                          </button>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                              isUserAdmin
+                                ? 'bg-purple-500/20 text-purple-400 border-purple-500/40'
+                                : isUserTeacher
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                                : 'bg-slate-700/50 text-slate-400 border-slate-600'
+                            }`}
+                          >
+                            {isUserAdmin ? <Shield className="w-3.5 h-3.5" /> : isUserTeacher ? <GraduationCap className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
+                            <span>{isUserAdmin ? "ADMIN" : isUserTeacher ? "PROFESSOR" : "ALUNO"}</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 font-medium text-sm">
+                          🔥 {user.streak_count || 0}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        {isSuperAdmin ? (
+                          <button
+                            onClick={() => handleBanUser(user.auth_id, user.id, user.name)}
+                            className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            title="Banir Usuário (Ação irreversível de Administrador)"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        ) : (
+                          <span 
+                            className="inline-flex items-center text-xs text-slate-500 gap-1 px-2 py-1 rounded bg-slate-800/40 border border-slate-800"
+                            title="Apenas o Administrador Geral pode excluir contas."
+                          >
+                            <Lock size={12} />
+                            <span>Protegido</span>
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {users.length === 0 && (
                   <tr>
                     <td colSpan="5" className="p-8 text-center text-slate-400">Nenhum usuário encontrado.</td>

@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import AuthCallback from './pages/AuthCallback';
 import ResetPassword from './pages/ResetPassword';
 import ModelTester from './pages/ModelTester';
+import DataStudio from './pages/DataStudio';
 import './App.css'; 
 
 function PrivateRoute({ children }) {
@@ -39,6 +40,8 @@ function AnimatedRoutes() {
         <Route path="ranking" element={<Ranking />} />
         <Route path="content" element={<ContentManager />} />
         <Route path="users" element={<CommunityManager />} />
+        <Route path="coleta" element={<DataStudio />} />
+        <Route path="data-studio" element={<Navigate to="/dashboard/coleta" replace />} />
         <Route path="tester" element={<ModelTester />} />
         <Route path="notifications" element={<NotificationCenter />} />
         <Route path="settings" element={<Settings />} />
