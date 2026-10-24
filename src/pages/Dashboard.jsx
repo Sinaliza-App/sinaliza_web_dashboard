@@ -26,6 +26,7 @@ const Dashboard = () => {
   const [usersByWeek, setUsersByWeek] = useState([]);
   const [levelDistribution, setLevelDistribution] = useState([]);
   const [xpOverTime, setXpOverTime] = useState([]);
+  const [difficultSigns, setDifficultSigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const getProfilePicture = (path) => {
@@ -118,6 +119,30 @@ const Dashboard = () => {
         }
         setXpOverTime(xpData);
         // === FIM DOS GRÁFICOS ===
+
+        // 4. Sinais com Mais Dificuldade (Dados Reais)
+        try {
+          const { data: diffData } = await supabase
+            .from('difficult_signs_summary')
+            .select('*')
+            .limit(4);
+
+          if (diffData && diffData.length > 0) {
+            const maxErr = Math.max(...diffData.map(d => d.total_errors), 1);
+            const colors = ['bg-rose-500', 'bg-amber-500', 'bg-yellow-500', 'bg-blue-500'];
+            const formatted = diffData.map((item, idx) => ({
+              sign: item.sign,
+              total_errors: item.total_errors,
+              percent: Math.min(100, Math.round((item.total_errors / maxErr) * 100)),
+              color: colors[idx % colors.length]
+            }));
+            setDifficultSigns(formatted);
+          } else {
+            setDifficultSigns([]);
+          }
+        } catch (errDiff) {
+          console.error("Erro ao carregar sinais com dificuldade:", errDiff);
+        }
 
         if (reportsRes.error) {
           console.error('❌ ERRO NA QUERY DE REPORTS (JOIN FALHOU):', reportsRes.error);
@@ -399,29 +424,33 @@ const Dashboard = () => {
               <Activity className="text-amber-500" size={24} />
             </div>
             <div className="space-y-4">
-              {[
-                { sign: 'Letra H', percent: 85, color: 'bg-rose-500' },
-                { sign: 'Letra X', percent: 65, color: 'bg-amber-500' },
-                { sign: 'Bom dia', percent: 40, color: 'bg-yellow-500' },
-                { sign: 'Por favor', percent: 25, color: 'bg-blue-500' }
-              ].map((item, i) => (
-                <div key={i} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-300 font-medium">{item.sign}</span>
-                    <span className="text-slate-500">{item.percent}% erros</span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${item.percent}%` }}
-                      transition={{ duration: 1, delay: i * 0.2 }}
-                      className={`h-full rounded-full ${item.color}`}
-                    />
-                  </div>
+              {difficultSigns.length === 0 ? (
+                <div className="text-center text-slate-400 py-6 text-sm">
+                  Nenhum erro registrado em testes ou quizzes.
                 </div>
-              ))}
+              ) : (
+                difficultSigns.map((item, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-300 font-medium">{item.sign}</span>
+                      <span className="text-slate-400 font-semibold">
+                        {item.total_errors} {item.total_errors === 1 ? 'erro' : 'erros'}
+                        <span className="text-slate-500 text-xs ml-1.5">({item.percent}%)</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${item.percent}%` }}
+                        transition={{ duration: 1, delay: i * 0.2 }}
+                        className={`h-full rounded-full ${item.color}`}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-            <p className="text-xs text-slate-500 mt-6 text-center italic">*Baseado no tempo médio de acerto (simulado)</p>
+            <p className="text-xs text-slate-500 mt-6 text-center italic">*Baseado nos erros reais registrados em desafios e quizzes da plataforma</p>
           </motion.div>
 
         </div>
