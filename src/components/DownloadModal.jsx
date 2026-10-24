@@ -23,9 +23,9 @@ export default function DownloadModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   // URLs oficiais e diretas para o download do APK (GitHub Releases e servidor local)
-  const githubReleaseApkUrl = 'https://github.com/Sinaliza-App/sinaliza_app_libras/releases/latest/download/app-arm64-v8a-release.apk';
+  const githubReleaseApkUrl = 'https://github.com/Sinaliza-App/sinaliza_app_libras/releases/latest/download/sinaliza.apk';
   const githubReleasePageUrl = 'https://github.com/Sinaliza-App/sinaliza_app_libras/releases';
-  const localApkUrl = '/downloads/sinaliza-app.apk';
+  const localApkUrl = '/downloads/sinaliza.apk';
 
   // O QR Code aponta para o link global oficial do GitHub Release (funciona em qualquer celular, 4G ou Wi-Fi)
   const qrTargetUrl = githubReleaseApkUrl;
@@ -41,7 +41,7 @@ export default function DownloadModal({ isOpen, onClose }) {
     // Cria um elemento âncora temporário para forçar o download direto do binário
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'Sinaliza-App-v1.2.0.apk';
+    link.download = 'sinaliza.apk';
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
     document.body.appendChild(link);
@@ -213,7 +213,7 @@ export default function DownloadModal({ isOpen, onClose }) {
               <div className="space-y-2 w-full">
                 <p className="text-sm font-semibold text-white">Aponte a câmera do seu smartphone</p>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  O download do instalador <strong>Sinaliza-App.apk</strong> iniciará diretamente no seu celular Android.
+                  O download do instalador <strong>sinaliza.apk</strong> iniciará diretamente no seu celular Android.
                 </p>
 
                 {/* Caixa de Copiar Link */}

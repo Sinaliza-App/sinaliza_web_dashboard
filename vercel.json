@@ -20,7 +20,7 @@
         },
         {
           "key": "Content-Disposition",
-          "value": "attachment; filename=\"Sinaliza-App-v1.2.0.apk\""
+          "value": "attachment; filename=\"sinaliza.apk\""
         },
         {
           "key": "Cache-Control",
