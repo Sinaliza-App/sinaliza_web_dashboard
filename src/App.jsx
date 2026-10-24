@@ -46,6 +46,7 @@ function AnimatedRoutes() {
         <Route path="notifications" element={<NotificationCenter />} />
         <Route path="settings" element={<Settings />} />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
