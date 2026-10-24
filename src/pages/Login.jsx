@@ -1,8 +1,24 @@
-import { useState, useContext, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AuthContext } from '../contexts/AuthContext'
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Lock, Mail } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
+import { 
+  Eye, 
+  EyeOff, 
+  AlertCircle, 
+  CheckCircle2, 
+  Lock, 
+  Mail, 
+  Smartphone, 
+  Download, 
+  KeyRound, 
+  MailCheck, 
+  RefreshCw,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import DownloadModal from '../components/DownloadModal';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -12,12 +28,30 @@ function Login() {
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  
   const [forgotPassword, setForgotPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [waitingEmailConfirmation, setWaitingEmailConfirmation] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+
   const [name, setName] = useState('');
   const [teacherCode, setTeacherCode] = useState('');
+  const [activationCode, setActivationCode] = useState('');
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
-  const { signIn, signInWithOAuth, resetPassword, registerTeacher } = useContext(AuthContext);
+  const { 
+    signIn, 
+    signInWithOAuth, 
+    resetPassword, 
+    registerTeacher, 
+    claimTeacher, 
+    resendConfirmationEmail,
+    needsTeacherActivation,
+    user,
+    signOut
+  } = useContext(AuthContext);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,15 +93,65 @@ function Login() {
       return;
     }
 
+    if (password.length < 6) {
+      setError('A senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await registerTeacher(name, email, password, teacherCode);
-      setMsg('Conta de professor criada com sucesso! Você já pode entrar com seu e-mail e senha.');
-      setIsRegistering(false);
+      const result = await registerTeacher(name, email, password, teacherCode);
+      
+      if (result.needsEmailConfirmation) {
+        setRegisteredEmail(email);
+        setWaitingEmailConfirmation(true);
+      } else {
+        setMsg('Conta de professor criada e autenticada com sucesso!');
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Erro ao cadastrar professor.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClaimTeacherSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMsg('');
+
+    if (!activationCode) {
+      setError('Informe a Chave Institucional de professor.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await claimTeacher(activationCode);
+      setMsg('Permissão docente ativada com sucesso! Redirecionando...');
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
+    } catch (err) {
+      setError(err.message || 'Erro ao validar chave institucional.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!registeredEmail && !email) return;
+    const targetEmail = registeredEmail || email;
+    setError('');
+    setResendingEmail(true);
+    try {
+      await resendConfirmationEmail(targetEmail);
+      setMsg(`E-mail de confirmação reenviado para ${targetEmail}.`);
+    } catch (err) {
+      setError(err.message || 'Erro ao reenviar e-mail de confirmação.');
+    } finally {
+      setResendingEmail(false);
     }
   };
 
@@ -84,7 +168,7 @@ function Login() {
     setLoading(true);
     try {
       await resetPassword(email);
-      setMsg('Um link de recuperação de senha foi enviado para o seu e-mail.');
+      setMsg('Um link seguro de recuperação de senha foi enviado para o seu e-mail.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -102,7 +186,7 @@ function Login() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-slate-950 font-sans overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center bg-slate-950 font-sans overflow-hidden py-12 px-4">
       
       {/* Background Decorativo Dinâmico */}
       <div className="absolute inset-0 z-0">
@@ -111,306 +195,489 @@ function Login() {
         <div className="absolute -bottom-40 left-1/2 w-96 h-96 bg-emerald-700/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '4s' }}></div>
       </div>
 
+      {/* Botão Superior de Baixar o App */}
+      <header className="absolute top-5 right-5 sm:right-8 z-20">
+        <button
+          type="button"
+          onClick={() => setIsDownloadModalOpen(true)}
+          className="group flex items-center gap-2.5 px-4 py-2.5 bg-slate-900/80 hover:bg-slate-800/90 border border-emerald-500/30 hover:border-emerald-500/60 text-slate-200 hover:text-white rounded-2xl backdrop-blur-xl shadow-lg transition-all duration-300 transform active:scale-95"
+        >
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <Smartphone size={16} />
+          </div>
+          <div className="text-left hidden xs:block">
+            <div className="text-[11px] font-medium text-slate-400">Instalar no celular</div>
+            <div className="text-xs font-bold text-white flex items-center gap-1">
+              Baixar o App
+              <Download size={12} className="text-emerald-400 group-hover:translate-y-0.5 transition-transform" />
+            </div>
+          </div>
+          <span className="xs:hidden text-xs font-bold text-white">Baixar App</span>
+        </button>
+      </header>
+
       {/* Container Principal */}
       <motion.div 
         initial={{ opacity: 0, y: 30 }} 
         animate={{ opacity: 1, y: 0 }} 
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-md p-8 mx-4 bg-slate-900/60 backdrop-blur-2xl border border-slate-700/50 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-3xl"
+        className="relative z-10 w-full max-w-md p-8 bg-slate-900/65 backdrop-blur-2xl border border-slate-700/60 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] rounded-3xl"
       >
-        <div className="text-center mb-8">
+        <div className="text-center mb-7">
           <motion.div
              initial={{ scale: 0.8, opacity: 0 }}
              animate={{ scale: 1, opacity: 1 }}
              transition={{ delay: 0.2, type: "spring" }}
-             className="inline-flex items-center justify-center mb-4"
+             className="inline-flex items-center justify-center mb-3"
           >
-            <img src="/letra_s.png" alt="Sinaliza Logo" className="w-28 h-28 object-contain drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+            <img src="/letra_s.png" alt="Sinaliza Logo" className="w-24 h-24 object-contain drop-shadow-[0_0_20px_rgba(16,185,129,0.45)]" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Sinaliza Web</h1>
-          <p className="text-slate-400 mt-2 text-sm">Acesso restrito para administradores</p>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Sinaliza Web</h1>
+          <p className="text-slate-400 mt-1.5 text-xs sm:text-sm">Portal Pedagógico e Administrativo</p>
         </div>
 
-        {/* Alternador de Modo: Entrar vs Cadastrar Professor */}
-        {!forgotPassword && (
-          <div className="flex bg-slate-800/60 p-1 rounded-2xl mb-6 border border-slate-700/50">
-            <button
-              type="button"
-              onClick={() => { setIsRegistering(false); setError(''); setMsg(''); }}
-              className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${!isRegistering ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
-            >
-              Entrar
-            </button>
-            <button
-              type="button"
-              onClick={() => { setIsRegistering(true); setError(''); setMsg(''); }}
-              className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${isRegistering ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
-            >
-              Sou Professor
-            </button>
-          </div>
-        )}
+        {/* Modal de Confirmação de E-mail Pendente */}
+        {waitingEmailConfirmation ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center space-y-5"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+              <MailCheck size={32} />
+            </div>
 
-        <AnimatePresence mode="wait">
-          {forgotPassword ? (
-            <motion.form 
-              key="reset"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              onSubmit={handleResetPassword}
-              className="space-y-5"
-            >
-              <div className="text-center mb-6">
-                <p className="text-slate-400 text-sm">Digite seu e-mail cadastrado e enviaremos instruções para redefinir sua senha com segurança.</p>
+            <div>
+              <h2 className="text-xl font-bold text-white">Verifique seu E-mail</h2>
+              <p className="text-slate-300 text-xs mt-2 leading-relaxed">
+                Enviamos um link de confirmação para o endereço:
+              </p>
+              <div className="mt-1 px-3 py-1.5 bg-slate-800/80 rounded-lg text-emerald-400 font-mono text-xs inline-block border border-slate-700">
+                {registeredEmail}
               </div>
+            </div>
 
-              <AnimatePresence>
-                {error && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-sm overflow-hidden">
-                    <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                    <span>{error}</span>
-                  </motion.div>
-                )}
-                {msg && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-sm overflow-hidden">
-                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
-                    <span>{msg}</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              
+            <div className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/50 text-left text-xs text-slate-400 space-y-1.5">
+              <p className="font-semibold text-slate-200 flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-emerald-400" />
+                Segurança Institucional
+              </p>
+              <p>1. Abra a sua caixa de entrada (ou pasta de spam/lixo eletrônico).</p>
+              <p>2. Clique no link de confirmação para validar sua conta de professor.</p>
+              <p>3. Após confirmar, você poderá acessar o portal com seu e-mail e senha.</p>
+            </div>
+
+            <AnimatePresence>
+              {msg && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-xs">
+                  <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+                  <span>{msg}</span>
+                </motion.div>
+              )}
+              {error && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-xs">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={resendingEmail}
+                className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <RefreshCw size={14} className={resendingEmail ? 'animate-spin' : ''} />
+                {resendingEmail ? 'Reenviando...' : 'Reenviar Link de Confirmação'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setWaitingEmailConfirmation(false);
+                  setIsRegistering(false);
+                  setError('');
+                  setMsg('');
+                }}
+                className="w-full py-3 text-slate-400 hover:text-white text-xs font-medium transition-colors"
+              >
+                Já confirmei, ir para o Login
+              </button>
+            </div>
+          </motion.div>
+        ) : needsTeacherActivation ? (
+          /* Ativação de Chave Docente para Contas Existentes */
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-5"
+          >
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs leading-relaxed space-y-1">
+              <p className="font-bold text-amber-200 flex items-center gap-1.5">
+                <KeyRound size={16} />
+                Ativação de Acesso Docente
+              </p>
+              <p>
+                Olá, <strong>{user?.name || user?.email}</strong>! Sua conta está vinculada como Aluno. Para gerenciar lições e turmas, insira a Chave Institucional fornecida pela escola.
+              </p>
+            </div>
+
+            <form onSubmit={handleClaimTeacherSubmit} className="space-y-4">
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail size={18} className="text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
-                </div>
                 <input 
-                  type="email" 
-                  placeholder="E-mail corporativo" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
+                  type="text" 
+                  placeholder="Chave Institucional (ex: PROF-SINALIZA-2026)" 
+                  value={activationCode} 
+                  onChange={(e) => setActivationCode(e.target.value)} 
                   required 
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
+                  className="w-full px-4 py-3.5 bg-slate-900/60 border border-emerald-500/40 rounded-xl text-emerald-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm font-mono"
                 />
               </div>
-              
-              <button 
-                type="submit" 
-                disabled={loading} 
-                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all duration-300 transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Enviando link...' : 'Enviar Redefinição'}
-              </button>
-              
-              <div className="text-center pt-2">
-                <button 
-                  type="button" 
-                  onClick={() => { setForgotPassword(false); setError(''); setMsg(''); }} 
-                  className="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors"
-                >
-                  Voltar para o Login
-                </button>
-              </div>
-            </motion.form>
-          ) : isRegistering ? (
-            <motion.form 
-              key="register"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              onSubmit={handleRegisterTeacherSubmit}
-              className="space-y-4"
-            >
-              <div className="text-center mb-2">
-                <p className="text-slate-400 text-xs">Crie sua conta docente informando a Chave Institucional da escola/universidade.</p>
-              </div>
 
-              {/* Mensagens de Alerta */}
               <AnimatePresence>
                 {error && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-sm overflow-hidden">
-                    <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-xs">
+                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
                     <span>{error}</span>
                   </motion.div>
                 )}
                 {msg && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-sm overflow-hidden">
-                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-xs">
+                    <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
                     <span>{msg}</span>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <div className="space-y-3">
-                <div className="relative group">
-                  <input 
-                    type="text" 
-                    placeholder="Nome completo do Professor" 
-                    value={name} 
-                    onChange={(e) => setName(e.target.value)} 
-                    required 
-                    className="w-full px-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm"
-                  />
-                </div>
-
-                <div className="relative group">
-                  <input 
-                    type="email" 
-                    placeholder="E-mail institucional" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                    className="w-full px-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm"
-                  />
-                </div>
-
-                <div className="relative group">
-                  <input 
-                    type="password" 
-                    placeholder="Senha de acesso" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                    className="w-full px-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm"
-                  />
-                </div>
-
-                <div className="relative group">
-                  <input 
-                    type="text" 
-                    placeholder="Código Institucional (ex: PROF-SINALIZA-2026)" 
-                    value={teacherCode} 
-                    onChange={(e) => setTeacherCode(e.target.value)} 
-                    required 
-                    className="w-full px-4 py-3 bg-emerald-950/20 border border-emerald-500/40 rounded-xl text-emerald-300 placeholder:text-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1 pl-1">Código padrão: <code className="text-emerald-400">PROF-SINALIZA-2026</code></p>
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={loading}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 rounded-xl font-bold text-base shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-60"
               >
-                {loading ? 'Cadastrando...' : 'Cadastrar Conta de Professor'}
+                {loading ? 'Validando chave...' : 'Ativar Acesso de Professor'}
               </button>
-            </motion.form>
-          ) : (
-            <motion.form 
-              key="login"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-              onSubmit={handleLoginSubmit}
-              className="space-y-5"
-            >
-              
-              {/* Botões Sociais */}
-              <div className="flex gap-4 mb-6">
-                <button 
+
+              <button
+                type="button"
+                onClick={signOut}
+                className="w-full text-center text-xs text-slate-400 hover:text-rose-400 transition-colors pt-1"
+              >
+                Sair desta conta
+              </button>
+            </form>
+          </motion.div>
+        ) : (
+          <>
+            {/* Alternador de Modo: Entrar vs Sou Professor */}
+            {!forgotPassword && (
+              <div className="flex bg-slate-800/60 p-1 rounded-2xl mb-6 border border-slate-700/50">
+                <button
                   type="button"
-                  onClick={() => handleOAuthLogin('google')}
-                  className="flex-1 flex items-center justify-center gap-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/50 text-white p-3 rounded-xl transition-all duration-200 hover:shadow-lg active:scale-95"
+                  onClick={() => { setIsRegistering(false); setError(''); setMsg(''); }}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 ${!isRegistering ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
                 >
-                  <span className="font-bold text-lg">G</span>
+                  Entrar
                 </button>
-                <button 
+                <button
                   type="button"
-                  onClick={() => handleOAuthLogin('github')}
-                  className="flex-1 flex items-center justify-center gap-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/50 text-white p-3 rounded-xl transition-all duration-200 hover:shadow-lg active:scale-95"
+                  onClick={() => { setIsRegistering(true); setError(''); setMsg(''); }}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 ${isRegistering ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"/></svg>
+                  Sou Professor
                 </button>
               </div>
+            )}
 
-              <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-slate-700/50"></div>
-                <span className="flex-shrink-0 mx-4 text-slate-500 text-xs font-medium uppercase tracking-wider">Ou continue com e-mail</span>
-                <div className="flex-grow border-t border-slate-700/50"></div>
-              </div>
-
-              {/* Mensagens de Alerta */}
-              <AnimatePresence>
-                {error && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-sm overflow-hidden">
-                    <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                    <span>{error}</span>
-                  </motion.div>
-                )}
-                {msg && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-sm overflow-hidden">
-                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
-                    <span>{msg}</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              
-              {/* Campos de Input */}
-              <div className="space-y-4">
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Mail size={18} className="text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
+            <AnimatePresence mode="wait">
+              {forgotPassword ? (
+                /* Recuperação de Senha */
+                <motion.form 
+                  key="reset"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  onSubmit={handleResetPassword}
+                  className="space-y-5"
+                >
+                  <div className="text-center mb-6">
+                    <p className="text-slate-400 text-xs sm:text-sm">Digite seu e-mail cadastrado e enviaremos instruções para redefinir sua senha com segurança.</p>
                   </div>
-                  <input 
-                    type="email" 
-                    placeholder="E-mail corporativo" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                    className="w-full pl-11 pr-4 py-3.5 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                  />
-                </div>
 
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock size={18} className="text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-xs overflow-hidden">
+                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                      </motion.div>
+                    )}
+                    {msg && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-xs overflow-hidden">
+                        <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+                        <span>{msg}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Mail size={18} className="text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
+                    </div>
+                    <input 
+                      type="email" 
+                      placeholder="E-mail institucional ou corporativo" 
+                      value={email} 
+                      onChange={(e) => setEmail(e.target.value)} 
+                      required 
+                      className="w-full pl-11 pr-4 py-3.5 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-sm"
+                    />
                   </div>
-                  <input 
-                    type={showPassword ? "text" : "password"} 
-                    placeholder="Senha" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                    className="w-full pl-11 pr-12 py-3.5 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
-                  />
+                  
                   <button 
-                    type="button" 
-                    onClick={() => setShowPassword(!showPassword)} 
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-emerald-500 transition-colors focus:outline-none"
-                    tabIndex="-1"
+                    type="submit" 
+                    disabled={loading} 
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 rounded-xl font-bold text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all duration-300 transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {loading ? 'Enviando link...' : 'Enviar Link de Redefinição'}
                   </button>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button 
-                  type="button"
-                  onClick={() => { setForgotPassword(true); setError(''); setMsg(''); }}
-                  className="text-sm font-medium text-emerald-500 hover:text-emerald-400 transition-colors"
+                  
+                  <div className="text-center pt-2">
+                    <button 
+                      type="button" 
+                      onClick={() => { setForgotPassword(false); setError(''); setMsg(''); }} 
+                      className="text-xs font-medium text-slate-400 hover:text-emerald-400 transition-colors"
+                    >
+                      Voltar para o Login
+                    </button>
+                  </div>
+                </motion.form>
+              ) : isRegistering ? (
+                /* Cadastro de Professor */
+                <motion.form 
+                  key="register"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  onSubmit={handleRegisterTeacherSubmit}
+                  className="space-y-4"
                 >
-                  Esqueceu a senha?
-                </button>
-              </div>
+                  <div className="text-center mb-2">
+                    <p className="text-slate-400 text-xs">Crie sua conta docente informando a Chave Institucional fornecida pela coordenação.</p>
+                  </div>
 
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all duration-300 transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Autenticando...' : 'Acessar Painel'}
-              </button>
-            </motion.form>
-          )}
-        </AnimatePresence>
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-xs overflow-hidden">
+                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                      </motion.div>
+                    )}
+                    {msg && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-xs overflow-hidden">
+                        <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+                        <span>{msg}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="space-y-3">
+                    <div className="relative group">
+                      <input 
+                        type="text" 
+                        placeholder="Nome completo do Professor" 
+                        value={name} 
+                        onChange={(e) => setName(e.target.value)} 
+                        required 
+                        className="w-full px-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-xs sm:text-sm"
+                      />
+                    </div>
+
+                    <div className="relative group">
+                      <input 
+                        type="email" 
+                        placeholder="E-mail institucional ou corporativo" 
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)} 
+                        required 
+                        className="w-full px-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-xs sm:text-sm"
+                      />
+                    </div>
+
+                    <div className="relative group">
+                      <input 
+                        type="password" 
+                        placeholder="Senha de acesso (mínimo 6 caracteres)" 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        required 
+                        minLength={6}
+                        className="w-full px-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-xs sm:text-sm"
+                      />
+                    </div>
+
+                    <div className="relative group">
+                      <input 
+                        type="text" 
+                        placeholder="Chave Institucional de Acesso" 
+                        value={teacherCode} 
+                        onChange={(e) => setTeacherCode(e.target.value)} 
+                        required 
+                        className="w-full px-4 py-3 bg-emerald-950/20 border border-emerald-500/40 rounded-xl text-emerald-300 placeholder:text-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-xs sm:text-sm font-mono uppercase"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1 pl-1 flex items-center gap-1">
+                        <ShieldCheck size={12} className="text-emerald-400" />
+                        A chave institucional é fornecida pela coordenação da sua instituição.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 rounded-xl font-bold text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                  >
+                    {loading ? 'Cadastrando...' : 'Cadastrar Conta de Professor'}
+                  </button>
+                </motion.form>
+              ) : (
+                /* Login Normal */
+                <motion.form 
+                  key="login"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  onSubmit={handleLoginSubmit}
+                  className="space-y-4"
+                >
+                  {/* Botões Sociais */}
+                  <div className="flex gap-3 mb-4">
+                    <button 
+                      type="button"
+                      onClick={() => handleOAuthLogin('google')}
+                      className="flex-1 flex items-center justify-center gap-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 text-white py-2.5 px-3 rounded-xl transition-all duration-200 text-xs font-semibold hover:shadow-lg active:scale-95"
+                    >
+                      <span className="font-bold text-base text-rose-400">G</span>
+                      Google
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleOAuthLogin('github')}
+                      className="flex-1 flex items-center justify-center gap-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 text-white py-2.5 px-3 rounded-xl transition-all duration-200 text-xs font-semibold hover:shadow-lg active:scale-95"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"/></svg>
+                      GitHub
+                    </button>
+                  </div>
+
+                  <div className="relative flex items-center py-1">
+                    <div className="flex-grow border-t border-slate-700/50"></div>
+                    <span className="flex-shrink-0 mx-3 text-slate-500 text-[11px] font-medium uppercase tracking-wider">Ou com e-mail corporativo</span>
+                    <div className="flex-grow border-t border-slate-700/50"></div>
+                  </div>
+
+                  {/* Mensagens de Alerta */}
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded-xl text-xs overflow-hidden">
+                        <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                      </motion.div>
+                    )}
+                    {msg && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-xl text-xs overflow-hidden">
+                        <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+                        <span>{msg}</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Campos de Input */}
+                  <div className="space-y-3">
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Mail size={16} className="text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
+                      </div>
+                      <input 
+                        type="email" 
+                        placeholder="E-mail institucional" 
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)} 
+                        required 
+                        className="w-full pl-11 pr-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-xs sm:text-sm"
+                      />
+                    </div>
+
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Lock size={16} className="text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
+                      </div>
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="Senha" 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        required 
+                        className="w-full pl-11 pr-11 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all text-xs sm:text-sm"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)} 
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-emerald-500 transition-colors focus:outline-none"
+                        tabIndex="-1"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button 
+                      type="button"
+                      onClick={() => { setForgotPassword(true); setError(''); setMsg(''); }}
+                      className="text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 rounded-xl font-bold text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all duration-300 transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Autenticando...' : 'Acessar Painel'}
+                  </button>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </>
+        )}
+
+        {/* Rodapé com Download Rápido do Aplicativo */}
+        <div className="mt-8 pt-5 border-t border-slate-800/80 text-center">
+          <button
+            type="button"
+            onClick={() => setIsDownloadModalOpen(true)}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors group"
+          >
+            <Smartphone size={14} className="group-hover:scale-110 transition-transform" />
+            <span>É aluno? Baixe o Aplicativo Sinaliza no seu celular</span>
+            <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
       </motion.div>
+
+      {/* Modal de Download do App Mobile */}
+      <DownloadModal 
+        isOpen={isDownloadModalOpen} 
+        onClose={() => setIsDownloadModalOpen(false)} 
+      />
     </div>
-  )
+  );
 }
 
-export default Login
+export default Login;

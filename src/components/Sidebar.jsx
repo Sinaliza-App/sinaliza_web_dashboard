@@ -1,12 +1,14 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Settings, LogOut, Podium, ChevronLeft, ChevronRight, Database, BellRing, Microscope, Camera } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, Podium, ChevronLeft, ChevronRight, Database, BellRing, Microscope, Camera, Smartphone } from 'lucide-react';
 import { useContext, useState } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
+import DownloadModal from './DownloadModal';
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useContext(AuthContext);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
   // Inicializa o estado lendo do localStorage, padrão é false (aberta)
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -71,16 +73,33 @@ const Sidebar = () => {
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-700">
+      <div className="p-4 border-t border-slate-700 space-y-1.5">
+        <button
+          type="button"
+          onClick={() => setIsDownloadOpen(true)}
+          title={isCollapsed ? "Baixar Aplicativo Mobile (APK)" : ""}
+          className={`flex w-full items-center gap-3 py-2.5 rounded-xl text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all duration-200 group ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}
+        >
+          <Smartphone size={20} className="shrink-0 group-hover:scale-110 transition-transform" />
+          {!isCollapsed && (
+            <div className="flex items-center justify-between w-full">
+              <span className="font-bold text-xs whitespace-nowrap text-emerald-300">Baixar o App</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 font-semibold text-emerald-300">APK</span>
+            </div>
+          )}
+        </button>
+
         <button
           onClick={handleLogout}
           title={isCollapsed ? "Sair da Conta" : ""}
-          className={`flex w-full items-center gap-3 py-3 rounded-lg text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-colors duration-200 ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}
+          className={`flex w-full items-center gap-3 py-2.5 rounded-xl text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-colors duration-200 ${isCollapsed ? 'justify-center px-0' : 'px-4'}`}
         >
           <LogOut size={20} className="shrink-0" />
-          {!isCollapsed && <span className="font-medium whitespace-nowrap">Sair da Conta</span>}
+          {!isCollapsed && <span className="font-medium text-xs whitespace-nowrap">Sair da Conta</span>}
         </button>
       </div>
+
+      <DownloadModal isOpen={isDownloadOpen} onClose={() => setIsDownloadOpen(false)} />
     </aside>
   );
 };

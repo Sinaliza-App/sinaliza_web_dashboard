@@ -1,12 +1,15 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import DownloadModal from '../components/DownloadModal';
 import { AuthContext } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Smartphone, Download } from 'lucide-react';
 
 const DashboardLayout = () => {
   const { user } = useContext(AuthContext);
   const location = useLocation();
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   // Helper function to resolve profile picture URL
   const getProfilePicture = (path) => {
@@ -53,7 +56,19 @@ const DashboardLayout = () => {
             <p className="text-sm text-slate-400">{pageInfo.sub}</p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Botão Baixar o App no Header */}
+            <button
+              type="button"
+              onClick={() => setIsDownloadModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-emerald-500/15 to-teal-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-300 hover:text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 group"
+              title="Baixar instalador do app para smartphone Android"
+            >
+              <Smartphone size={16} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="hidden md:inline">Baixar o App</span>
+              <Download size={13} className="text-emerald-400 group-hover:translate-y-0.5 transition-transform" />
+            </button>
+
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-slate-200">{user?.name || 'Administrador'}</p>
               <div className="flex items-center justify-end gap-1.5 mt-0.5">
@@ -88,6 +103,12 @@ const DashboardLayout = () => {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Modal Global de Download do App */}
+      <DownloadModal 
+        isOpen={isDownloadModalOpen} 
+        onClose={() => setIsDownloadModalOpen(false)} 
+      />
     </motion.div>
   );
 };
